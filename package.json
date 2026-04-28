@@ -1,0 +1,29 @@
+{
+  "name": "mock_cctv",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Szfinx5/mock_cctv.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Szfinx5/mock_cctv/issues"
+  },
+  "homepage": "https://github.com/Szfinx5/mock_cctv#readme",
+  "description": "",
+  "dependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.6.0",
+    "express": "^5.2.1",
+    "ffmpeg-static": "^5.3.0",
+    "fluent-ffmpeg": "^2.1.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}
