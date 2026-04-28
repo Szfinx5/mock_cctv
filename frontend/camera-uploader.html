@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+  <body>
+    <h2>Webcam Stream Uploader</h2>
+    <label>Camera ID: <input id="camid" value="cam1" /></label>
+    <button id="start">Start Streaming</button>
+    <video id="video" autoplay playsinline style="display: none"></video>
+    <script>
+      let ws;
+      let wsCamId = null;
+      let wsInterval = null;
+      let wsStream = null;
+      let wsVideo = document.getElementById("video");
+
+      function startWebSocket(camid) {
+        if (ws) ws.close();
+        ws = new WebSocket(
+          `ws://localhost:4050/upload/${encodeURIComponent(camid)}`,
+        );
+        wsCamId = camid;
+        ws.onclose = () => {
+          // Try to reconnect after 1s
+          setTimeout(() => startWebSocket(wsCamId), 1000);
+        };
+      }
+
+      document.getElementById("start").onclick = () => {
+        const camid = document.getElementById("camid").value || "cam1";
+        startWebSocket(camid);
+        navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+          wsVideo.srcObject = stream;
+          wsStream = stream;
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          if (wsInterval) clearInterval(wsInterval);
+          wsInterval = setInterval(() => {
+            if (wsVideo.videoWidth && ws.readyState === 1) {
+              canvas.width = wsVideo.videoWidth;
+              canvas.height = wsVideo.videoHeight;
+              ctx.drawImage(wsVideo, 0, 0);
+              canvas.toBlob(
+                (blob) => {
+                  if (ws.readyState === 1)
+                    blob.arrayBuffer().then((buf) => ws.send(buf));
+                },
+                "image/jpeg",
+                0.7,
+              );
+            }
+          }, 200); // 5 fps
+        });
+      };
+    </script>
+  </body>
+</html>
