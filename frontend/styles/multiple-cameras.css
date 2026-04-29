@@ -1,0 +1,69 @@
+.multiple-main {
+  padding: 32px;
+}
+
+.multiple-title {
+  margin-bottom: 24px;
+}
+
+.multiple-form {
+  margin-bottom: 24px;
+}
+
+.multiple-input {
+  padding: 8px;
+  font-size: 16px;
+  border-radius: 4px;
+  border: 1px solid #888;
+  margin-right: 8px;
+}
+
+.multiple-add-btn {
+  padding: 8px 16px;
+  font-size: 16px;
+  border-radius: 4px;
+}
+
+.multiple-cameras {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.camera-stream {
+  margin: 16px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 12px;
+  width: 340px;
+}
+
+.camera-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.camera-status {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 2px solid #222;
+  margin-right: 8px;
+  transition: background 0.3s;
+}
+
+.camera-status.online {
+  background: limegreen;
+}
+
+.camera-status.offline {
+  background: red;
+}
+
+.camera-img {
+  width: 320px;
+  height: 240px;
+  border-radius: 6px;
+  border: 1px solid #333;
+  background: #222;
+}

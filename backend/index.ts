@@ -1,72 +1,13 @@
 import express from "express";
 import cors from "cors";
-import { spawn } from "child_process";
-import ffmpegPath from "ffmpeg-static";
 import http from "http";
 
 const app = express();
 app.use(cors());
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 4000;
-let ffmpeg: ReturnType<typeof spawn> | null = null;
 
 // Create HTTP server for both Express and WebSocket
 const server = http.createServer(app);
-
-// MJPEG streaming endpoint
-app.get("/mjpeg", (req, res) => {
-  res.writeHead(200, {
-    "Content-Type": "multipart/x-mixed-replace; boundary=ffserver",
-    "Cache-Control": "no-cache",
-    Connection: "close",
-    Pragma: "no-cache",
-  });
-
-  // Start ffmpeg for each connection
-  const ffmpeg = spawn(ffmpegPath as string, [
-    "-f",
-    "v4l2",
-    "-framerate",
-    "15",
-    "-video_size",
-    "640x480",
-    "-i",
-    "/dev/video0",
-    "-f",
-    "mjpeg",
-    "-q:v",
-    "5",
-    "pipe:1",
-  ]);
-
-  ffmpeg.stdout.on("data", (chunk) => {
-    res.write(
-      `--ffserver\r\nContent-Type: image/jpeg\r\nContent-Length: ${chunk.length}\r\n\r\n`,
-    );
-    res.write(chunk);
-  });
-  ffmpeg.stderr.on("data", (data) => {
-    // Optionally log ffmpeg errors
-    // console.error(`[ffmpeg] ${data}`);
-  });
-  ffmpeg.on("close", () => {
-    res.end();
-  });
-  req.on("close", () => {
-    ffmpeg.kill("SIGTERM");
-  });
-});
-
-import fs from "fs";
-app.get("/healthz", (_req, res) => {
-  // Check if /dev/video0 exists and is readable
-  fs.access("/dev/video0", fs.constants.R_OK, (err) => {
-    if (err) {
-      res.status(503).send("camera unavailable");
-    } else {
-      res.send("ok");
-    }
-  });
-});
 
 // --- Multi-camera MJPEG via WebSocket ---
 import { WebSocketServer } from "ws";
@@ -142,7 +83,6 @@ app.get("/cameras", (_req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Mock CCTV backend running on http://localhost:${PORT}`);
   console.log(
     `WebSocket camera upload at ws://localhost:${PORT}/upload/CAMERA_ID`,
   );

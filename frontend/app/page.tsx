@@ -1,103 +1,79 @@
 "use client";
-import { useRef, useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import "../styles/multiple-cameras.css";
 
-export default function Home() {
+function CameraStream({ id }: { id: string }) {
   const [online, setOnline] = useState(false);
-  const [health, setHealth] = useState(false); // true if /healthz is OK
-  const [imgKey, setImgKey] = useState(0); // Used to force reload
-  const imgRef = useRef<HTMLImageElement>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const retryRef = useRef<NodeJS.Timeout | null>(null);
+  const [imgKey, setImgKey] = useState(0);
 
-  // When the image loads, set online to true and start a timer to detect offline
-  const handleLoad = () => {
-    setOnline(true);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    if (retryRef.current) clearTimeout(retryRef.current);
-    // If no load event for 3s, set offline
-    timerRef.current = setTimeout(() => setOnline(false), 3000);
-  };
-  const handleError = () => {
-    setOnline(false);
-    if (timerRef.current) clearTimeout(timerRef.current);
-  };
-
-  // Poll /healthz for true camera status
+  // Poll for camera online status
   useEffect(() => {
-    let lastHealth = health;
     const poll = setInterval(() => {
-      fetch("http://localhost:4000/healthz")
-        .then((res) => {
-          const ok = res.ok;
-          setHealth((old) => {
-            // Only retry if health transitions from false to true AND stream is not online
-            if (!lastHealth && ok && !online) {
-              setImgKey((k) => k + 1);
-            }
-            lastHealth = ok;
-            return ok;
-          });
+      fetch(`https://mock-cctv.onrender.com/cameras`)
+        .then((res) => res.json())
+        .then((ids) => {
+          setOnline(ids.includes(id));
         })
-        .catch(() => setHealth(false));
+        .catch(() => setOnline(false));
     }, 2000);
     return () => clearInterval(poll);
-  }, [online, health]);
+  }, [id]);
 
-  // No polling or auto-reload logic
-  // Only manual reload via button
+  // Retry stream if it goes offline and comes back
+  useEffect(() => {
+    if (online) setImgKey((k) => k + 1);
+  }, [online]);
 
   return (
-    <main
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        minHeight: "100vh",
-      }}
-    >
-      <h1>Mock CCTV Live Stream (MJPEG)</h1>
-      <div
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 8,
-          background: health ? "limegreen" : "red",
-          marginBottom: 12,
-          border: "2px solid #222",
-          transition: "background 0.3s",
-        }}
-        title={health ? "Camera online" : "Camera offline"}
-      />
+    <div className="camera-stream">
+      <div className="camera-header">
+        <div
+          className={`camera-status ${online ? "online" : "offline"}`}
+          title={online ? "Camera online" : "Camera offline"}
+        />
+        <b>{id}</b>
+      </div>
       <img
         key={imgKey}
-        ref={imgRef}
-        src={`http://localhost:4000/mjpeg?${imgKey}`}
-        alt="MJPEG Stream"
-        style={{ maxWidth: "100%", border: "2px solid #333", borderRadius: 8 }}
-        onLoad={handleLoad}
-        onError={handleError}
+        src={`https://mock-cctv.onrender.com/mjpeg/${encodeURIComponent(id)}?${imgKey}`}
+        alt={id}
+        className="camera-img"
       />
-      {!online && (
-        <button
-          style={{
-            margin: "12px 0",
-            padding: "6px 16px",
-            borderRadius: 6,
-            border: "1px solid #888",
-            background: "#eee",
-            cursor: "pointer",
-          }}
-          onClick={() => setImgKey((k) => k + 1)}
-        >
-          Retry Stream
+    </div>
+  );
+}
+
+export default function MultipleCameras() {
+  const [cameras, setCameras] = useState<string[]>([]);
+  const [input, setInput] = useState("");
+
+  return (
+    <main className="multiple-main">
+      <h1 className="multiple-title">Multiple Camera Streams</h1>
+      <form
+        className="multiple-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (input && !cameras.includes(input))
+            setCameras([...cameras, input]);
+          setInput("");
+        }}
+      >
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Enter camera name"
+          className="multiple-input"
+        />
+        <button type="submit" className="multiple-add-btn">
+          Add Camera
         </button>
-      )}
-      <p style={{ marginTop: 16 }}>
-        If you see this image, the backend MJPEG stream is working.
-        <br />
-        If you see a broken image, check the backend and webcam.
-      </p>
+      </form>
+      <div className="multiple-cameras">
+        {cameras.map((id) => (
+          <CameraStream key={id} id={id} />
+        ))}
+      </div>
     </main>
   );
 }
