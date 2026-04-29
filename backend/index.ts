@@ -2,11 +2,15 @@ import express from "express";
 import cors from "cors";
 import { spawn } from "child_process";
 import ffmpegPath from "ffmpeg-static";
+import http from "http";
 
 const app = express();
 app.use(cors());
-const PORT = 4000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 4000;
 let ffmpeg: ReturnType<typeof spawn> | null = null;
+
+// Create HTTP server for both Express and WebSocket
+const server = http.createServer(app);
 
 // MJPEG streaming endpoint
 app.get("/mjpeg", (req, res) => {
@@ -69,10 +73,19 @@ import { WebSocketServer } from "ws";
 const cameraFrames: Record<string, Buffer> = {};
 const cameraLastSeen: Record<string, number> = {};
 
-// WebSocket server for camera uploads
-const wss = new WebSocketServer({ port: 4050 });
+// WebSocket server for camera uploads (attach to same HTTP server)
+const wss = new WebSocketServer({ noServer: true });
+server.on("upgrade", (request, socket, head) => {
+  // Only handle /upload/*
+  if (request.url && request.url.startsWith("/upload/")) {
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit("connection", ws, request);
+    });
+  } else {
+    socket.destroy();
+  }
+});
 wss.on("connection", (ws, req) => {
-  // Use remote address and a random id for uniqueness if not provided
   const url = req.url || "";
   let id = "";
   if (url.startsWith("/upload/")) {
@@ -128,10 +141,10 @@ app.get("/cameras", (_req, res) => {
   res.json(ids);
 });
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Mock CCTV backend running on http://localhost:${PORT}`);
   console.log(
-    `WebSocket camera upload at ws://localhost:4050/upload/CAMERA_ID`,
+    `WebSocket camera upload at ws://localhost:${PORT}/upload/CAMERA_ID`,
   );
   console.log(`MJPEG streams at http://localhost:${PORT}/mjpeg/CAMERA_ID`);
   console.log(`Camera list at http://localhost:${PORT}/cameras`);

@@ -3,7 +3,7 @@
   <body>
     <h2>Webcam Stream Uploader</h2>
     <label>Camera ID: <input id="camid" value="cam1" /></label>
-    <button id="start">Start Streaming</button>
+    <button id="toggle-stream">Start Streaming</button>
     <video id="video" autoplay playsinline style="display: none"></video>
     <script>
       let ws;
@@ -11,20 +11,24 @@
       let wsInterval = null;
       let wsStream = null;
       let wsVideo = document.getElementById("video");
+      let isStreaming = false;
+      const toggleBtn = document.getElementById("toggle-stream");
 
       function startWebSocket(camid) {
         if (ws) ws.close();
         ws = new WebSocket(
-          `ws://localhost:4050/upload/${encodeURIComponent(camid)}`,
+          `ws://localhost:4000/upload/${encodeURIComponent(camid)}`,
         );
         wsCamId = camid;
         ws.onclose = () => {
-          // Try to reconnect after 1s
-          setTimeout(() => startWebSocket(wsCamId), 1000);
+          if (isStreaming) {
+            // Try to reconnect after 1s
+            setTimeout(() => startWebSocket(wsCamId), 1000);
+          }
         };
       }
 
-      document.getElementById("start").onclick = () => {
+      function startStreaming() {
         const camid = document.getElementById("camid").value || "cam1";
         startWebSocket(camid);
         navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
@@ -49,6 +53,35 @@
             }
           }, 200); // 5 fps
         });
+        isStreaming = true;
+        toggleBtn.textContent = "Stop Streaming";
+      }
+
+      function stopStreaming() {
+        isStreaming = false;
+        toggleBtn.textContent = "Start Streaming";
+        if (wsInterval) {
+          clearInterval(wsInterval);
+          wsInterval = null;
+        }
+        if (ws) {
+          ws.onclose = null;
+          ws.close();
+          ws = null;
+        }
+        if (wsStream) {
+          wsStream.getTracks().forEach((track) => track.stop());
+          wsStream = null;
+        }
+        wsVideo.srcObject = null;
+      }
+
+      toggleBtn.onclick = () => {
+        if (!isStreaming) {
+          startStreaming();
+        } else {
+          stopStreaming();
+        }
       };
     </script>
   </body>
