@@ -8,7 +8,7 @@ function CameraStream({ id }: { id: string }) {
   // Poll for camera online status
   useEffect(() => {
     const poll = setInterval(() => {
-      fetch(`http://localhost:4000/cameras`)
+      fetch(`https://mock-cctv.onrender.com/cameras`)
         .then((res) => res.json())
         .then((ids) => {
           console.log("CameraStream", { id, ids });
@@ -51,7 +51,7 @@ function CameraStream({ id }: { id: string }) {
       </div>
       <img
         key={imgKey}
-        src={`http://localhost:4000/mjpeg/${encodeURIComponent(id)}?${imgKey}`}
+        src={`https://mock-cctv.onrender.com/mjpeg/${encodeURIComponent(id)}?${imgKey}`}
         alt={id}
         style={{
           width: 320,
